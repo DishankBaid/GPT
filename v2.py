@@ -64,14 +64,22 @@ class BigramLanguageModel(nn.Module):
     def __init__(self):
         super().__init__()
         # Below code think it as 2d matrix of vocab_size * vocab_size (in our case - 65 * 65)
-        self.token_embedding_table = nn.Embedding(
-            vocab_size, n_embd
-        )  # our entire model (almost all magic happens here)
+        self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
+
+        self.position_embedding_table = nn.Embedding(block_size, n_embd)
+
         self.lm_head = nn.Linear(n_embd, vocab_size)
 
     def forward(self, idx, targets=None):
-        tok_emb = self.token_embedding_table(idx)
-        logits = self.lm_head(tok_emb)
+        B, T = idx.shape
+
+        tok_emb = self.token_embedding_table(idx)  # (B, T, C)
+        pos_emb = self.position_embedding_table(
+            torch.arange(T, device=device)
+        )  # (T, C)
+
+        x = tok_emb + pos_emb  # (B, T, C)
+        logits = self.lm_head(x)  # (B, T, vocab_size)
 
         if targets is None:
             loss = None
