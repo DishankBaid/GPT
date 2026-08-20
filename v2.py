@@ -92,19 +92,19 @@ class Head(nn.Module):
         return out
 
 
-# class MultiHeadAttention(nn.Module):
-#     """multiple heads of self-attention in parallel"""
+class MultiHeadAttention(nn.Module):
+    """multiple heads of self-attention in parallel"""
 
-#     def __init__(self, num_heads, head_size):
-#         super().__init__()
-#         self.heads = nn.ModuleList(
-#             [Head(head_size) for _ in range(num_heads)]
-#         )  # list of heads
+    def __init__(self, num_heads, head_size):
+        super().__init__()
+        self.heads = nn.ModuleList(
+            [Head(head_size) for _ in range(num_heads)]
+        )  # list of heads
 
-#     def forward(self, x):
-#         return torch.cat(
-#             [h(x) for h in self.heads], dim=-1
-#         )  # concatenate outputs of all heads
+    def forward(self, x):
+        return torch.cat(
+            [h(x) for h in self.heads], dim=-1
+        )  # concatenate outputs of all heads
 
 
 class BigramLanguageModel(nn.Module):
@@ -115,7 +115,9 @@ class BigramLanguageModel(nn.Module):
 
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
 
-        self.sa_head = Head(n_embd)  # self attention head
+        self.sa_heads = MultiHeadAttention(
+            num_heads=4, head_size=n_embd // 4
+        )  # self attention head
 
         self.lm_head = nn.Linear(n_embd, vocab_size)
 
@@ -128,7 +130,7 @@ class BigramLanguageModel(nn.Module):
         )  # (T, C)
 
         x = tok_emb + pos_emb  # (B, T, C)
-        x = self.sa_head(x)  # apply one head of self attention (B, T, C)
+        x = self.sa_heads(x)  # apply multi-head self attention (B, T, C)
         logits = self.lm_head(x)  # (B, T, vocab_size)
 
         if targets is None:
